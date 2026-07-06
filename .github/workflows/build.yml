@@ -34,7 +34,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pygame pyinstaller
+        pip install pygame
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          pip install pywin32
+        fi
+        pip install pyinstaller==6.6.0
 
     - name: Build with PyInstaller
       run: pyinstaller --onefile --windowed snowflake.py
@@ -48,10 +52,9 @@ jobs:
         fi
 
     - name: Upload to Release
-      uses: svenstaro/upload-release-action@v2
+      uses: softprops/action-gh-release@v2
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: dist/${{ matrix.output_name }}
-        asset_name: ${{ matrix.output_name }}
-        tag: ${{ github.ref_name }}
-        overwrite: true
+        files: dist/${{ matrix.output_name }}
+        tag_name: ${{ github.ref_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
