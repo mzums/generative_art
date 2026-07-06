@@ -3,6 +3,7 @@ name: Build for Windows, Linux & macOS
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,10 +14,13 @@ jobs:
         include:
           - os: ubuntu-latest
             output_name: snowflake-linux
+            extension: ""
           - os: windows-latest
-            output_name: snowflake-windows.exe
+            output_name: snowflake-windows
+            extension: ".exe"
           - os: macos-latest
             output_name: snowflake-macos
+            extension: ""
 
     steps:
     - name: Checkout code
@@ -35,11 +39,22 @@ jobs:
     - name: Build with PyInstaller
       run: pyinstaller --onefile --windowed snowflake.py
 
-    - name: Upload to Release
-      uses: svenstaro/upload-release-action@v2
+    - name: Debug - list dist folder
+      run: |
+        echo "Contents of dist:"
+        ls -la dist/ || dir dist
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: dist/snowflake*
-        asset_name: ${{ matrix.output_name }}
-        tag: ${{ github.ref }}
-        overwrite: true
+        name: ${{ matrix.output_name }}
+        path: dist/snowflake*
+
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/snowflake*
+        tag_name: ${{ github.ref_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
