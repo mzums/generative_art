@@ -5,11 +5,12 @@ on:
     types: [published]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -38,10 +39,19 @@ jobs:
     - name: Build with PyInstaller
       run: pyinstaller --onefile --windowed snowflake.py
 
+    - name: Rename binary
+      run: |
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          mv dist/snowflake.exe dist/${{ matrix.output_name }}
+        else
+          mv dist/snowflake dist/${{ matrix.output_name }}
+        fi
+
     - name: Upload to Release
-      uses: softprops/action-gh-release@v2
+      uses: svenstaro/upload-release-action@v2
       with:
-        files: dist/snowflake*
-        tag_name: ${{ github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: dist/${{ matrix.output_name }}
+        asset_name: ${{ matrix.output_name }}
+        tag: ${{ github.ref_name }}
+        overwrite: true
